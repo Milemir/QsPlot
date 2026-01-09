@@ -1,0 +1,6 @@
+
+include CMakeLists.txt
+include pyproject.toml
+include setup.py
+recursive-include src *
+recursive-include infra/dep *

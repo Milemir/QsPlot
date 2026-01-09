@@ -1,0 +1,27 @@
+[build-system]
+requires = ["scikit-build-core", "nanobind"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "qsplot"
+version = "0.1.0"
+description = "High-performance C++/OpenGL visualization engine specified for times series data"
+readme = "README.md"
+authors = [
+  { name = "Milemir" },
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+umap = ["umap-learn"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0"]
+
+[tool.scikit-build]
+cmake.version = ">=3.15"
+wheel.install-dir = "qsplot"
+wheel.packages = ["src/qsplot"]
