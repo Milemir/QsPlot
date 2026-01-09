@@ -4,7 +4,7 @@ import time
 from typing import List, Optional, Union, Dict, Any
 from .processor import DataProcessor
 
-# Import the C++ Module (compiled extension)
+# Import the C++ Module
 try:
     from . import qsplot_engine
 except ImportError:
@@ -105,7 +105,6 @@ class Visualizer:
             color_idx = int(np.argmax(variances))
             color_label = f"{self._feature_cols[color_idx]} (auto)"
         elif isinstance(color_feature, str):
-            # By name
             if color_feature in self._feature_cols:
                 color_idx = self._feature_cols.index(color_feature)
                 color_label = color_feature
@@ -113,7 +112,6 @@ class Visualizer:
                 color_idx = 0
                 color_label = f"{self._feature_cols[0]} (fallback)"
         else:
-            # By index
             color_idx = int(color_feature) % len(self._feature_cols)
             color_label = self._feature_cols[color_idx]
         
@@ -125,8 +123,6 @@ class Visualizer:
         else:
             color_values = np.zeros_like(color_values)
         
-        # 4. INDEPENDENT MODE: Exclude color feature from PCA input
-        # This gives 4 independent dimensions: Color + X + Y + Z
         feature_mask = np.ones(X.shape[1], dtype=bool)
         feature_mask[color_idx] = False  # Exclude color feature
         X_for_pca = X[:, feature_mask]
@@ -142,7 +138,7 @@ class Visualizer:
         # 6. Normalize
         positions_norm = self.processor.normalize_positions(positions_raw, scale=10.0)
         
-        # 7. Generate axis labels (hybrid format)
+        # 7. Generate axis labels
         axis_labels = self._generate_axis_labels(
             method, 
             reduction_result.get('explained_variance_ratios'),
@@ -150,8 +146,7 @@ class Visualizer:
         )
         
         tickers = snapshot[self._ticker_col].values
-        
-        # C++ için float32 zorunluluğu
+
         return {
             "positions": positions_norm.astype(np.float32),
             "values": color_values.astype(np.float32),
@@ -170,7 +165,6 @@ class Visualizer:
         
         for i in range(3):
             if method == 'pca' and explained_var is not None and top_features is not None:
-                # Hybrid format: PC1 (45%) → momentum, vol
                 var_pct = int(explained_var[i] * 100)
                 feat_str = ", ".join(top_features[i][:2])  # Top 2 features
                 # Shorten feature names if too long
@@ -215,7 +209,7 @@ class Visualizer:
             if not data_curr or not data_next:
                 continue
                 
-            # --- ALIGNMENT LOGIC (Bu kısım harika!) ---
+            # --- ALIGNMENT LOGIC ---
             ticks_curr = data_curr['tickers']
             ticks_next = data_next['tickers']
             
@@ -246,15 +240,13 @@ class Visualizer:
             pos_next_aligned = pos_next_filtered[sort_idx_next]
             val_next_aligned = val_next_filtered[sort_idx_next]
             
-            # --- SEND TO ENGINE & MEMORY SAFETY ---
-            
-            # 1. Contiguous Array oluştur (C++ pointer erişimi için şart)
+            # 1. Contiguous Array oluştur
             p_c = np.ascontiguousarray(pos_curr_aligned, dtype=np.float32)
             v_c = np.ascontiguousarray(val_curr_aligned, dtype=np.float32)
             p_n = np.ascontiguousarray(pos_next_aligned, dtype=np.float32)
             v_n = np.ascontiguousarray(val_next_aligned, dtype=np.float32)
             
-            # 2. Send to C++ (C++ now copies data, no need to keep Python refs alive)
+            # 2. Send to C++
             self.engine.set_points_raw(p_c, v_c)
             self.engine.set_target_points(p_n, v_n)
             
