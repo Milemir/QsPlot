@@ -66,8 +66,6 @@ void Camera::zoom(float delta) {
 
 void Camera::pan(float deltaX, float deltaY) {
     // Pan logic depends on view vectors
-    // Simple implementation: move target based on Right and Up vectors
-    // Not implemented fully for brevity, just orbit/zoom is sufficient for now.
 }
 
 Eigen::Matrix4f Camera::getViewMatrix() const { return m_view; }
