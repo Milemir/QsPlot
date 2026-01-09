@@ -7,9 +7,6 @@ class QsPlotWrapper:
     """
     High-level Python wrapper for the QsPlot C++ library.
     
-    .. deprecated:: 0.2.0
-        Use :class:`qsplot.Visualizer` instead. This class will be removed in v1.0.
-    
     This class manages the Renderer and DataProcessor, providing a simplified
     API for loading datasets with variable features and different dimensionality 
     reduction techniques.
@@ -82,13 +79,6 @@ class QsPlotWrapper:
         if feature_col is not None:
             if isinstance(feature_col, int):
                 if 0 <= feature_col < M:
-                    # Extract column, normalize if needed? 
-                    # For now just pass raw values, Renderer shader handles some range or we can normalize here.
-                    # Renderer typically maps values to Color Ramp.
-                    # Let's normalize 0-1 for better visualization by default? 
-                    # The C++ code doesn't normalize 'values' automatically in setPoints, 
-                    # but the shader might expect 0-1 for texture lookup if using a LUT.
-                    # Let's keep it raw for flexibilty, but casting is needed.
                     col_data = data[:, feature_col]
                     values = col_data.astype(np.float32)
                 else:
@@ -97,7 +87,6 @@ class QsPlotWrapper:
                 values = np.array(feature_col, dtype=np.float32)
 
         # 3. Upload to Render Engine
-        # Using set_points which handles the data copy
         self.renderer.set_points(points_3d, values)
         print(f"[QsPlot] Uploaded {N} points to renderer.")
 
