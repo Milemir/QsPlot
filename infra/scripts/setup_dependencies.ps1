@@ -62,16 +62,10 @@ if (-not (Test-Path "glad")) {
         pip install glad
     }
 
-    # Try glad v2 syntax first, then fall back to v1
-    # v2: python -m glad --api gl:core=4.1 --out-path glad c
-    # v1: python -m glad --api=gl:4.1 --profile=core --generator=c --out-path=glad
-    try {
-        python -m glad --api "gl:core=4.1" --out-path glad c
-    }
-    catch {
-        Write-Host "Trying legacy glad syntax..." -ForegroundColor Yellow
-        python -m glad --api=gl --out-path=glad --profile=core --generator=c
-    }
+    # GLAD v1 syntax (pip installed version)
+    # --generator is required and must come before other args
+    python -m glad --generator=c --out-path=glad --profile=core
+    
     
     if ((Test-Path "glad/include/glad/glad.h") -or (Test-Path "glad/glad.h")) {
         Write-Host "GLAD generated successfully." -ForegroundColor Green
