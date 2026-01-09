@@ -66,7 +66,8 @@ jobs:
         [ ! -d "eigen" ] && git clone https://gitlab.com/libeigen/eigen.git || true
         [ ! -d "imgui" ] && git clone -b docking https://github.com/ocornut/imgui.git || true
         if [ ! -d "glad" ]; then
-          python -m glad --out-path=glad --api=gl:4.1 --profile=core --generator=c --extensions=""
+          # Try glad v2 first, fallback to v1
+          python -m glad --api "gl:core=4.1" --out-path glad c || python -m glad --api=gl --out-path=glad --profile=core --generator=c
         fi
 
     - name: Install package

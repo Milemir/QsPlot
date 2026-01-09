@@ -4,9 +4,9 @@ Write-Host ">>> Setting up QsPlot Dependencies..." -ForegroundColor Cyan
 
 # Ensure infra/dep directory exists
 $ExternParams = @{
-    Path = "infra/dep"
+    Path     = "infra/dep"
     ItemType = "Directory"
-    Force = $true
+    Force    = $true
 }
 New-Item @ExternParams | Out-Null
 
@@ -18,7 +18,8 @@ Push-Location infra/dep
 if (-not (Test-Path "nanobind")) {
     Write-Host "Cloning nanobind..." -ForegroundColor Green
     git clone --recursive https://github.com/wjakob/nanobind.git
-} else {
+}
+else {
     Write-Host "nanobind already exists." -ForegroundColor Gray
 }
 
@@ -28,7 +29,8 @@ if (-not (Test-Path "nanobind")) {
 if (-not (Test-Path "glfw")) {
     Write-Host "Cloning glfw..." -ForegroundColor Green
     git clone https://github.com/glfw/glfw.git
-} else {
+}
+else {
     Write-Host "glfw already exists." -ForegroundColor Gray
 }
 
@@ -38,7 +40,8 @@ if (-not (Test-Path "glfw")) {
 if (-not (Test-Path "eigen")) {
     Write-Host "Cloning eigen..." -ForegroundColor Green
     git clone https://gitlab.com/libeigen/eigen.git
-} else {
+}
+else {
     Write-Host "eigen already exists." -ForegroundColor Gray
 }
 
@@ -53,24 +56,31 @@ if (-not (Test-Path "glad")) {
     # Check if 'glad' is installed via pip
     try {
         python -c "import glad"
-    } catch {
+    }
+    catch {
         Write-Host "Installing 'glad' generator via pip..." -ForegroundColor Yellow
         pip install glad
     }
 
-    # Generate source
-    # --out-path=glad : Creates infra/dep/glad/include and infra/dep/glad/src
-    # --api=gl:4.1 : Targeting OpenGL 4.1 Core (MacOS compatible, good baseline)
-    # --profile=core : Core profile (no legacy)
-    # --generator=c : Generate C/C++ loader
-    python -m glad --out-path=glad --api=gl:4.1 --profile=core --generator=c --extensions=""
+    # Try glad v2 syntax first, then fall back to v1
+    # v2: python -m glad --api gl:core=4.1 --out-path glad c
+    # v1: python -m glad --api=gl:4.1 --profile=core --generator=c --out-path=glad
+    try {
+        python -m glad --api "gl:core=4.1" --out-path glad c
+    }
+    catch {
+        Write-Host "Trying legacy glad syntax..." -ForegroundColor Yellow
+        python -m glad --api=gl --out-path=glad --profile=core --generator=c
+    }
     
-    if (Test-Path "glad/include/glad/glad.h") {
+    if ((Test-Path "glad/include/glad/glad.h") -or (Test-Path "glad/glad.h")) {
         Write-Host "GLAD generated successfully." -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Error "Failed to generate GLAD."
     }
-} else {
+}
+else {
     Write-Host "glad already exists." -ForegroundColor Gray
 }
 
@@ -80,7 +90,8 @@ if (-not (Test-Path "glad")) {
 if (-not (Test-Path "imgui")) {
     Write-Host "Cloning imgui (docking)..." -ForegroundColor Green
     git clone -b docking https://github.com/ocornut/imgui.git
-} else {
+}
+else {
     Write-Host "imgui already exists." -ForegroundColor Gray
 }
 
