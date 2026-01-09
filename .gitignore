@@ -71,6 +71,7 @@ Makefile
 
 # Build artifacts
 infra/build_manual/
+infra/dep/
 *.lib
 *.exp
 *.obj
