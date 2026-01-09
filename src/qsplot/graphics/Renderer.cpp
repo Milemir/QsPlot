@@ -52,7 +52,6 @@ void Renderer::stop() {
 void Renderer::setPoints(const float* positions, const float* values, size_t count) {
     std::lock_guard<std::mutex> lock(m_dataMutex);
     
-    // MEMORY SAFETY: Copy data into owned vectors instead of storing raw pointers
     if (positions && count > 0) {
         m_stagedPositions.assign(positions, positions + count * 3);
     } else {
@@ -72,7 +71,6 @@ void Renderer::setPoints(const float* positions, const float* values, size_t cou
 void Renderer::setTargetPoints(const float* positions, const float* values, size_t count) {
     std::lock_guard<std::mutex> lock(m_dataMutex);
     
-    // MEMORY SAFETY: Copy data into owned vectors instead of storing raw pointers
     if (positions && count > 0) {
         m_stagedNextPositions.assign(positions, positions + count * 3);
     } else {
@@ -90,8 +88,6 @@ void Renderer::setTargetPoints(const float* positions, const float* values, size
 }
 
 void Renderer::setPointsRaw(const float* positions, const float* values, size_t count) {
-    // Identical to setPoints logic for the renderer, but the intention is different
-    // (Caller guarantees coordinates are already spatial).
     setPoints(positions, values, count);
 }
 
@@ -147,12 +143,11 @@ void Renderer::loop() {
 
     ImGui::StyleColorsDark();
 
-    // Init ImGui Backend, but disable auto-callback install because we handle chaining manually
-    ImGui_ImplGlfw_InitForOpenGL(m_window, false); // <--- Changed to false
+    // Init ImGui Backend
+    ImGui_ImplGlfw_InitForOpenGL(m_window, false);
     ImGui_ImplOpenGL3_Init("#version 410");
 
     // Setup Camera and Callbacks defined AFTER ImGui init 
-    // We are manually forwarding events in the callbacks
     m_camera = new Camera(1280, 720);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetMouseButtonCallback(m_window, mouse_button_callback);
@@ -192,9 +187,7 @@ static void getHeatMapColor(float t, float* r, float* g, float* b) {
         // mix(cyan, red, f)
         *r = f;
         *g = 1.0f - f;
-        *b = 1.0f - f; // Cyan is 0,1,1 -> Red is 1,0,0 ?? 
-                       // Wait, shader says: mix(vec3(0.0, 1.0, 1.0), vec3(1.0, 0.0, 0.0), f)
-                       // R: 0->1, G: 1->0, B: 1->0
+        *b = 1.0f - f;
     }
 }
 
@@ -345,7 +338,7 @@ void Renderer::renderFrame() {
     // Update Camera
     if (m_camera) {
         Eigen::Matrix4f view = m_camera->getViewMatrix();
-        // Row 0 is Right, Row 1 is Up (because View = Inverse Camera, and Camera Rotation is Orthogonal)
+        // Row 0 is Right, Row 1 is Up
         Eigen::Vector3f right = m_camera->getRight();
         Eigen::Vector3f up    = m_camera->getUp();
 
