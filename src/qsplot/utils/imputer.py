@@ -88,10 +88,6 @@ class FastImputer(BaseEstimator, TransformerMixin):
         Returns:
             pd.DataFrame: A new DataFrame with missing values filled.
         """
-        # Check is fitted
-        # We can loosely check if columns are set, or use check_is_fitted if we set an attribute with trailing underscore
-        # For simplicity/speed we just proceed. Sklearn's check_is_fitted looks for attributes ending in _.
-        # We set self.statistics_ in fit, so that works.
         check_is_fitted(self, 'statistics_')
 
         X_transformed = X.copy()
@@ -109,8 +105,6 @@ class FastImputer(BaseEstimator, TransformerMixin):
 
         elif self.strategy == 'ffill':
             X_transformed[target_cols] = X_transformed[target_cols].ffill()
-            # ffill might leave initial NaNs, optionally bfill remaining or leave them.
-            # Requirement says "Propagate last valid observation", standard pandas ffill behaviors.
 
         elif self.strategy == 'bfill':
             X_transformed[target_cols] = X_transformed[target_cols].bfill()
@@ -128,7 +122,6 @@ class FastImputer(BaseEstimator, TransformerMixin):
 
 
 if __name__ == "__main__":
-    # --- Usage Example ---
     print("Running FastImputer Demo...")
 
     # Create a sample financial DataFrame with NaNs
@@ -141,8 +134,6 @@ if __name__ == "__main__":
     df = pd.DataFrame(data, index=dates)
     
     # Introduce an irregularity to test 'time' interpolation
-    # Drop a few dates in the middle to make it irregular if we were reindexing, 
-    # but here we already have a regular index. Let's make it irregular by dropping rows.
     df_irregular = df.drop(df.index[[1, 5]]) 
 
     print("\nOriginal DataFrame (with NaNs):")
