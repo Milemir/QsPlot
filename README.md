@@ -40,10 +40,10 @@ vis = Visualizer()
 vis.load_time_series(df, date_col="Date", ticker_col="Ticker", feature_cols=["F1", "F2", "F3"])
 
 # Animate (time series)
-vis.run_morph_animation("2024-01-01", "2024-12-31")
+vis.animate("2024-01-01", "2024-12-31")
 
 # OR: Static visualization (single snapshot)
-vis.run_static_visualization()
+vis.static()
 ```
 
 ## Setup Dependencies (Manual)

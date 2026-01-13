@@ -76,7 +76,7 @@ vis.load_time_series(
 
 ### Step 4: Animate
 ```python
-vis.run_morph_animation(
+vis.animate(
     start_date="2024-01-01", 
     end_date="2024-12-31", 
     method='pca' # or 'umap'
@@ -85,7 +85,7 @@ vis.run_morph_animation(
 
 ## Static Visualization (Non-Time Series)
 
-If you have data without meaningful temporal progression, or you just want to view a single snapshot, use `run_static_visualization()`:
+If you have data without meaningful temporal progression, or you just want to view a single snapshot, use `static()`:
 
 ```python
 from qsplot import Visualizer
@@ -105,5 +105,5 @@ vis.load_time_series(df, date_col='Date', ticker_col='Ticker',
                       feature_cols=['Feature_1', 'Feature_2', 'Feature_3'])
 
 # Display static visualization
-vis.run_static_visualization()
+vis.static()
 ```

@@ -180,9 +180,9 @@ class Visualizer:
         
         return labels
         
-    def run_morph_animation(self, start_date: str, end_date: str, method: str = 'pca'):
+    def animate(self, start_date: str, end_date: str, method: str = 'pca'):
         """
-        Orchestrates the animation loop.
+        Orchestrates the animation loop for time series data.
         """
         if not self.engine:
             print("Engine not initialized.")
@@ -264,7 +264,7 @@ class Visualizer:
             # Wait for user to view animation
             time.sleep(1.0) 
     
-    def run_static_visualization(self, date: Optional[str] = None, method: str = 'pca'):
+    def static(self, date: Optional[str] = None, method: str = 'pca'):
         """
         Displays a static (non-animated) visualization for a single timestamp.
         Perfect for non-time series data or when you want to view a single snapshot.

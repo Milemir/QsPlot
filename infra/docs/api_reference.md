@@ -20,11 +20,11 @@ Ingests a DataFrame for analysis.
 internal or advanced usage. Process a single timestamp.
 - **Returns**: Dictionary with keys `positions` (Nx3), `values` (Nx1), `tickers` (N).
 
-### `run_morph_animation(self, start_date, end_date, method='pca')`
-Runs a blocking animation loop from start to end date.
+### `animate(self, start_date, end_date, method='pca')`
+Runs a blocking animation loop from start to end date for time series data.
 - **method** (`str`): 'pca', 'tsne', or 'umap'.
 
-### `run_static_visualization(self, date=None, method='pca')`
+### `static(self, date=None, method='pca')`
 Displays a static (non-animated) visualization for a single timestamp. Perfect for non-time series data or viewing a single snapshot.
 - **date** (`str`, optional): Specific date to visualize. If None, uses the first available date.
 - **method** (`str`): 'pca', 'tsne', or 'umap'.
@@ -32,10 +32,10 @@ Displays a static (non-animated) visualization for a single timestamp. Perfect f
 **Example:**
 ```python
 # For non-time series data
-vis.run_static_visualization()
+vis.static()
 
 # For specific date
-vis.run_static_visualization("2024-06-15")
+vis.static("2024-06-15")
 ```
 
 ### `stop(self)`
