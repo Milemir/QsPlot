@@ -82,3 +82,28 @@ vis.run_morph_animation(
     method='pca' # or 'umap'
 )
 ```
+
+## Static Visualization (Non-Time Series)
+
+If you have data without meaningful temporal progression, or you just want to view a single snapshot, use `run_static_visualization()`:
+
+```python
+from qsplot import Visualizer
+import pandas as pd
+
+# Your data (can be any date, doesn't matter for static view)
+df = pd.DataFrame({
+    'Date': ['2024-01-01'] * 100,  # All same date
+    'Ticker': [f'Stock_{i}' for i in range(100)],
+    'Feature_1': np.random.randn(100),
+    'Feature_2': np.random.randn(100),
+    'Feature_3': np.random.randn(100),
+})
+
+vis = Visualizer()
+vis.load_time_series(df, date_col='Date', ticker_col='Ticker', 
+                      feature_cols=['Feature_1', 'Feature_2', 'Feature_3'])
+
+# Display static visualization
+vis.run_static_visualization()
+```

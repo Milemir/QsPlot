@@ -271,6 +271,69 @@ class Visualizer:
             
             # Wait for user to view animation
             time.sleep(1.0) 
+    
+    def run_static_visualization(self, date: Optional[str] = None, method: str = 'pca'):
+        """
+        Displays a static (non-animated) visualization for a single timestamp.
+        Perfect for non-time series data or when you want to view a single snapshot.
+        
+        Args:
+            date: Specific date to visualize. If None, uses the first available date.
+            method: Dimensionality reduction method ('pca', 'tsne', 'umap')
+        """
+        if not self.engine:
+            print("Engine not initialized.")
+            return
+        
+        # Get available dates
+        dates = self.get_dates()
+        
+        if len(dates) == 0:
+            print("No data loaded. Use load_time_series() first.")
+            return
+        
+        # Select date
+        if date is None:
+            selected_date = dates[0]
+            print(f"No date specified, using first available: {selected_date}")
+        else:
+            selected_date = pd.to_datetime(date)
+            if selected_date not in dates:
+                print(f"Warning: Date {date} not found. Available dates: {dates[:5]}...")
+                print(f"Using closest date: {dates[0]}")
+                selected_date = dates[0]
+        
+        # Prepare data
+        print(f"Preparing static visualization for {selected_date}...")
+        data = self.prepare_frame(selected_date, method=method)
+        
+        if not data:
+            print("Failed to prepare data for the selected date.")
+            return
+        
+        # Convert to contiguous arrays for C++
+        positions = np.ascontiguousarray(data['positions'], dtype=np.float32)
+        values = np.ascontiguousarray(data['values'], dtype=np.float32)
+        
+        # Send to engine (set both current and target to same data for static view)
+        self.engine.set_points_raw(positions, values)
+        self.engine.set_target_points(positions, values)
+        
+        # Send dimension labels
+        if hasattr(self.engine, 'set_dimension_labels'):
+            self.engine.set_dimension_labels(
+                data.get('color_label', 'Color'),
+                data.get('x_label', 'X'),
+                data.get('y_label', 'Y'),
+                data.get('z_label', 'Z')
+            )
+        
+        print(f"✓ Loaded {len(positions)} points to GPU.")
+        print(f"  Color: {data.get('color_label', 'N/A')}")
+        print(f"  X-axis: {data.get('x_label', 'N/A')}")
+        print(f"  Y-axis: {data.get('y_label', 'N/A')}")
+        print(f"  Z-axis: {data.get('z_label', 'N/A')}")
+        print("\nVisualization ready. Interact with the 3D view!")
                 
     def stop(self):
         if self.engine:

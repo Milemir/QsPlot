@@ -24,6 +24,20 @@ internal or advanced usage. Process a single timestamp.
 Runs a blocking animation loop from start to end date.
 - **method** (`str`): 'pca', 'tsne', or 'umap'.
 
+### `run_static_visualization(self, date=None, method='pca')`
+Displays a static (non-animated) visualization for a single timestamp. Perfect for non-time series data or viewing a single snapshot.
+- **date** (`str`, optional): Specific date to visualize. If None, uses the first available date.
+- **method** (`str`): 'pca', 'tsne', or 'umap'.
+
+**Example:**
+```python
+# For non-time series data
+vis.run_static_visualization()
+
+# For specific date
+vis.run_static_visualization("2024-06-15")
+```
+
 ### `stop(self)`
 Stops the engine and closes the window.
 
