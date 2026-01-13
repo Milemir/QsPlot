@@ -19,7 +19,7 @@ Eigen::MatrixXd DataProcessor::computePCA(int targetDims) {
     }
 
     // 1. Center and Standardize the data (Z-Score)
-    // Important for financial data with different units (e.g., Price vs Volume)
+    // Important for financial data with different units
     Eigen::RowVectorXd means = m_rawData.colwise().mean();
     Eigen::MatrixXd centered = m_rawData.rowwise() - means;
     

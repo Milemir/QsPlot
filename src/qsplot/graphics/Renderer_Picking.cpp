@@ -43,19 +43,17 @@ void Renderer::initPickingFBO(int width, int height) {
 int Renderer::getPickedID(double mouseX, double mouseY) {
     if (!m_pickingFBO || !m_camera) return -1;
 
-    // 1. Mevcut OpenGL ayarlarını kaydet (State Preservation)
+    // 1. Sace current OpenGL settings
     GLint lastViewport[4]; glGetIntegerv(GL_VIEWPORT, lastViewport);
     GLboolean lastScissor = glIsEnabled(GL_SCISSOR_TEST);
     GLboolean lastBlend = glIsEnabled(GL_BLEND);
     GLboolean lastDither = glIsEnabled(GL_DITHER);
 
-    // 2. Picking için temiz bir ortam hazırla
-    glDisable(GL_SCISSOR_TEST); // ImGui kırpmasını kapat
-    glDisable(GL_BLEND);        // Renk karışımını kapat (ID'ler karışmasın)
-    glDisable(GL_DITHER);       // Renk titremesini kapat
-    glEnable(GL_DEPTH_TEST);    // Derinlik testini aç (Öndeki noktayı seç)
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_DITHER);
+    glEnable(GL_DEPTH_TEST);
 
-    // 3. Boyutları al
     int fbWidth, fbHeight;
     glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
     int winWidth, winHeight;
@@ -63,16 +61,13 @@ int Renderer::getPickedID(double mouseX, double mouseY) {
 
     if (winWidth == 0 || winHeight == 0) return -1;
 
-    // 4. FBO Bağla ve Hazırla
     glBindFramebuffer(GL_FRAMEBUFFER, m_pickingFBO);
     glViewport(0, 0, fbWidth, fbHeight);
     
-    // Arkaplanı -1 (Seçim Yok) ile doldur
     int clearVal = -1;
     glClearBufferiv(GL_COLOR, 0, &clearVal);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    // 5. Shader ve Uniformlar
     glUseProgram(m_pickingShaderProgram);
 
     Eigen::Matrix4f vp = m_camera->getViewProjectionMatrix();
@@ -80,21 +75,17 @@ int Renderer::getPickedID(double mouseX, double mouseY) {
     glUniform1f(glGetUniformLocation(m_pickingShaderProgram, "uScale"), m_pointScale); 
     glUniform1f(glGetUniformLocation(m_pickingShaderProgram, "uTime"), m_morphTime);
     
-    // Billboarding için kamera vektörleri (Tıklama alanı ile görseli eşler)
     Eigen::Vector3f right = m_camera->getRight();
     Eigen::Vector3f up    = m_camera->getUp();
     glUniform3fv(glGetUniformLocation(m_pickingShaderProgram, "uCameraRight"), 1, right.data());
     glUniform3fv(glGetUniformLocation(m_pickingShaderProgram, "uCameraUp"), 1, up.data());
 
-    // 6. Çizim (Sadece ID'leri render et)
     glBindVertexArray(m_validVAO);
     glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)m_renderCount);
 
-    // 7. GPU Senkronizasyonu (Çizimin bitmesini garanti et)
     glFlush();
     glFinish();
 
-    // 8. Koordinat Dönüşümü
     double scaleX = (double)fbWidth / (double)winWidth;
     double scaleY = (double)fbHeight / (double)winHeight;
     double invertedY = (double)winHeight - mouseY; // Y Ekseni Tersi
@@ -103,15 +94,12 @@ int Renderer::getPickedID(double mouseX, double mouseY) {
     int readY = (int)(invertedY * scaleY);
 
     int id = -1;
-    // Sınır kontrolü ve okuma
     if (readX >= 0 && readX < fbWidth && readY >= 0 && readY < fbHeight) {
-        // [ROBUSTNESS] Check FBO Status before reading
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
              std::cerr << "[Picking] FBO Incomplete! Aborting read." << std::endl;
              return -1;
         }
 
-        // Pixel Alignment ayarını 1 yap (Kaymaları önler)
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadBuffer(GL_COLOR_ATTACHMENT0); 
         
@@ -123,12 +111,11 @@ int Renderer::getPickedID(double mouseX, double mouseY) {
              id = -1; 
         }
 
-        glPixelStorei(GL_PACK_ALIGNMENT, 4); // Varsayılanı geri yükle
+        glPixelStorei(GL_PACK_ALIGNMENT, 4);
     } else {
         id = -1;
     }
 
-    // 9. Eski Ayarları Geri Yükle
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(lastViewport[0], lastViewport[1], lastViewport[2], lastViewport[3]);
     if (lastScissor) glEnable(GL_SCISSOR_TEST);
