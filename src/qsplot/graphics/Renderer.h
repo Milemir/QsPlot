@@ -120,7 +120,12 @@ private:
     float m_pointScale;
     float m_globalAlpha;
     int m_colorMode; 
-    float m_morphTime; 
+    float m_morphTime;
+    
+    // Color Filter
+    bool m_colorFilterEnabled;
+    float m_colorFilterValue;
+    float m_colorFilterTolerance; 
 
     // Picking State
     int m_selectedID; // -1 if nothing selected

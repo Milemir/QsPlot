@@ -53,7 +53,12 @@ const char* fragmentShaderSource = R"(
     uniform int uColorMode;       
     uniform int uSelectedID;      
     uniform bool uHasSelection;   
-    uniform vec3 uSelectedColor;  
+    uniform vec3 uSelectedColor;
+    
+    // Color filter uniforms
+    uniform bool uColorFilterEnabled;
+    uniform float uColorFilterValue;
+    uniform float uColorFilterTolerance;
 
     
     vec3 heatMap(float t) {
@@ -89,7 +94,7 @@ const char* fragmentShaderSource = R"(
         else cv = vec3(clamp(vValue, 0.0, 1.0)); 
 
         
-        float finalAlpha = baseAlpha * uAlpha; 
+        float finalAlpha = baseAlpha * uAlpha;
 
         if (uHasSelection) {
             if (vID == uSelectedID) {
@@ -109,6 +114,15 @@ const char* fragmentShaderSource = R"(
                 float dynamicAlpha = mix(lowAlpha, highAlpha, pow(similarity, 3.0));
                 
                 finalAlpha = baseAlpha * dynamicAlpha;
+            }
+        }
+
+        // Apply color filter AFTER selection logic
+        if (uColorFilterEnabled) {
+            float valueDiff = abs(vValue - uColorFilterValue);
+            if (valueDiff > uColorFilterTolerance) {
+                // Point is outside filter range - discard it completely
+                discard;
             }
         }
 

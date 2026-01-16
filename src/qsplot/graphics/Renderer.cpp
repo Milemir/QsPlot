@@ -28,6 +28,7 @@ Renderer::Renderer(const RendererConfig& config)
       m_instanceVBO_NextPos(0), m_instanceVBO_NextVal(0), m_stagedNextCount(0), m_forceUpdateNext(false),
       m_camera(nullptr), m_mouseLeftDown(false), m_mouseRightDown(false), m_lastX(0), m_lastY(0),
       m_pointScale(config.pointScale), m_globalAlpha(config.globalAlpha), m_colorMode(config.colorMode), m_morphTime(0.0f),
+      m_colorFilterEnabled(false), m_colorFilterValue(0.5f), m_colorFilterTolerance(0.05f),
       m_selectedID(-1), m_pickingFBO(0), m_pickingTexture(0), m_pickingDepth(0), m_pickingShaderProgram(0)
 {
 }
@@ -320,9 +321,27 @@ void Renderer::renderFrame() {
                 );
             }
             
+            // Draw color filter slider indicator (thin white bar)
+            if (m_colorFilterEnabled) {
+                float sliderX = pos.x + m_colorFilterValue * legendSize.x;
+                drawList->AddLine(
+                    ImVec2(sliderX, pos.y - 5),
+                    ImVec2(sliderX, pos.y + legendSize.y + 5),
+                    IM_COL32(255, 255, 255, 255),
+                    3.0f
+                );
+            }
+            
             // Move cursor past the legend
             ImGui::Dummy(legendSize);
             ImGui::Text("0.0                     1.0");
+            
+            // Color filter slider
+            ImGui::Checkbox("Color Filter", &m_colorFilterEnabled);
+            if (m_colorFilterEnabled) {
+                ImGui::SliderFloat("Filter Value", &m_colorFilterValue, 0.0f, 1.0f);
+                ImGui::SliderFloat("Tolerance", &m_colorFilterTolerance, 0.01f, 0.2f, "±%.2f");
+            }
         }
 
     }
@@ -353,6 +372,11 @@ void Renderer::renderFrame() {
         glUniform1f(glGetUniformLocation(m_shaderProgram, "uTime"), m_morphTime);
         glUniform1i(glGetUniformLocation(m_shaderProgram, "uSelectedID"), m_selectedID);
         glUniform1i(glGetUniformLocation(m_shaderProgram, "uHasSelection"), (m_selectedID != -1));
+        
+        // Color filter uniforms
+        glUniform1i(glGetUniformLocation(m_shaderProgram, "uColorFilterEnabled"), m_colorFilterEnabled);
+        glUniform1f(glGetUniformLocation(m_shaderProgram, "uColorFilterValue"), m_colorFilterValue);
+        glUniform1f(glGetUniformLocation(m_shaderProgram, "uColorFilterTolerance"), m_colorFilterTolerance);
         
         // Compute Selected Color on CPU to solve shader issues
         float selR = 0.0f, selG = 0.0f, selB = 0.0f;
