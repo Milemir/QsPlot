@@ -85,23 +85,26 @@ const char* fragmentShaderSource = R"(
         
         float distSq = dot(vUV, vUV);
         if (distSq > 1.0) discard;
-        float baseAlpha = 1.0 - smoothstep(0.85, 1.0, sqrt(distSq));
 
-        
-        vec3 cv = vec3(1.0);
+        // Calculate inner color
+        vec3 cv;
         if (uColorMode == 0) cv = heatMap(vValue);
         else if (uColorMode == 1) cv = coolWarm(vValue);
-        else cv = vec3(clamp(vValue, 0.0, 1.0)); 
+        else cv = vec3(clamp(vValue, 0.0, 1.0));
 
-        
+        // Anti-aliased Outline: Smoothly blend to black at the edge
+        // Transition starts at radius 0.92, fully black by 0.95
+        float dist = sqrt(distSq);
+        float outlineFactor = smoothstep(0.92, 0.95, dist);
+        cv = mix(cv, vec3(0.0), outlineFactor);
+
+        float baseAlpha = 1.0; 
         float finalAlpha = baseAlpha * uAlpha;
 
         if (uHasSelection) {
             if (vID == uSelectedID) {
-                
                 finalAlpha = baseAlpha * 1.0; 
-                
-                 cv = vec3(1.0); 
+                cv = vec3(1.0); 
             } else {
                 
                 float colorDist = distance(cv, uSelectedColor);
@@ -117,11 +120,9 @@ const char* fragmentShaderSource = R"(
             }
         }
 
-        // Apply color filter AFTER selection logic
         if (uColorFilterEnabled) {
             float valueDiff = abs(vValue - uColorFilterValue);
             if (valueDiff > uColorFilterTolerance) {
-                // Point is outside filter range - discard it completely
                 discard;
             }
         }

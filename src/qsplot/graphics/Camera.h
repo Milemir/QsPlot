@@ -13,6 +13,7 @@ public:
     void orbit(float deltaX, float deltaY);
     void zoom(float delta);
     void pan(float deltaX, float deltaY);
+    void reset();
 
     // Getters
     Eigen::Matrix4f getViewMatrix() const;

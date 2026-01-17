@@ -8,8 +8,8 @@
  */
 struct RendererConfig {
     // Window settings
-    int windowWidth = 1280;
-    int windowHeight = 720;
+    int windowWidth = 1920;
+    int windowHeight = 1080;
     const char* windowTitle = "QsPlot";
     bool vsync = true;
     

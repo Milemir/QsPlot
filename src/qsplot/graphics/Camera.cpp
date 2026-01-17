@@ -68,6 +68,14 @@ void Camera::pan(float deltaX, float deltaY) {
     // Pan logic depends on view vectors
 }
 
+void Camera::reset() {
+    m_yaw = 0.0f;
+    m_pitch = 0.0f;
+    m_distance = 25.0f;  // Default distance from RendererConfig
+    m_target = Eigen::Vector3f(0, 0, 0);
+    updateView();
+}
+
 Eigen::Matrix4f Camera::getViewMatrix() const { return m_view; }
 Eigen::Matrix4f Camera::getProjectionMatrix() const { return m_projection; }
 Eigen::Matrix4f Camera::getViewProjectionMatrix() const { return m_projection * m_view; }

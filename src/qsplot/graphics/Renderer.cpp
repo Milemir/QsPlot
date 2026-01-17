@@ -6,7 +6,11 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
+#include <cmath>
+#include <algorithm>
+#include <mutex>
 #include <cstdio>
+#include <cstdlib>
 
 // ImGui Headers
 #include "imgui.h"
@@ -29,7 +33,7 @@ Renderer::Renderer(const RendererConfig& config)
       m_camera(nullptr), m_mouseLeftDown(false), m_mouseRightDown(false), m_lastX(0), m_lastY(0),
       m_pointScale(config.pointScale), m_globalAlpha(config.globalAlpha), m_colorMode(config.colorMode), m_morphTime(0.0f),
       m_colorFilterEnabled(false), m_colorFilterValue(0.5f), m_colorFilterTolerance(0.05f),
-      m_selectedID(-1), m_pickingFBO(0), m_pickingTexture(0), m_pickingDepth(0), m_pickingShaderProgram(0)
+      m_selectedID(-1), m_hoveredID(-1), m_pickingFBO(0), m_pickingTexture(0), m_pickingDepth(0), m_pickingShaderProgram(0)
 {
 }
 
@@ -148,8 +152,7 @@ void Renderer::loop() {
     ImGui_ImplGlfw_InitForOpenGL(m_window, false);
     ImGui_ImplOpenGL3_Init("#version 410");
 
-    // Setup Camera and Callbacks defined AFTER ImGui init 
-    m_camera = new Camera(1280, 720);
+    m_camera = new Camera(1920, 1080);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetMouseButtonCallback(m_window, mouse_button_callback);
     glfwSetCursorPosCallback(m_window, cursor_position_callback);
@@ -172,6 +175,9 @@ void Renderer::loop() {
     delete m_camera;
     glfwDestroyWindow(m_window);
     glfwTerminate();
+
+    // Force Python process to exit when window is closed
+    std::exit(0);
 }
 
 // Helper functions for CPU-side color calculation (Mirrors Shader Logic)
@@ -239,115 +245,212 @@ void Renderer::renderFrame() {
 
     // UI Definition
     {
-        ImGui::Begin("Global Controls");
+        ImGui::Begin("QsPlot");
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
         ImGui::Separator();
         
-        ImGui::Text("Appearance");
-        ImGui::SliderFloat("Point Size", &m_pointScale, 0.01f, 0.2f);
-        ImGui::SliderFloat("Alpha", &m_globalAlpha, 0.0f, 1.0f);
-        
-        const char* colorConfig[] = { "Heatmap (Blue-Red)", "CoolWarm (Div)", "Viridis (Grayscale)" };
-        ImGui::Combo("Color Mode", &m_colorMode, colorConfig, IM_ARRAYSIZE(colorConfig));
-        
-        ImGui::Separator();
-        ImGui::Text("Time Series");
-        ImGui::SliderFloat("Time Morph", &m_morphTime, 0.0f, 1.0f);
-
-        // Dimension Labels
-        ImGui::Separator();
-        ImGui::Text("Dimensions");
-        ImGui::BulletText("Color: %s", m_colorLabel.c_str());
-        
-        // Axis labels with colors matching gizmo
-        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "  X:"); ImGui::SameLine();
-        ImGui::Text("%s", m_xLabel.c_str());
-        
-        ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "  Y:"); ImGui::SameLine();
-        ImGui::Text("%s", m_yLabel.c_str());
-        
-        ImGui::TextColored(ImVec4(0.3f, 0.3f, 1.0f, 1.0f), "  Z:"); ImGui::SameLine();
-        ImGui::Text("%s", m_zLabel.c_str());
-
-        ImGui::Separator();
-        ImGui::Text("Selection");
-        if (m_selectedID != -1) {
-            ImGui::Text("Selected ID: %d", m_selectedID);
-            // Show ticker label if available
-            std::string ticker = getSelectedTicker();
-            if (!ticker.empty()) {
-                ImGui::Text("Ticker: %s", ticker.c_str());
-            }
-            // Show current value
-            {
-                std::lock_guard<std::mutex> lock(m_dataMutex);
-                if (m_selectedID < (int)m_stagedValues.size()) {
-                    float val = m_stagedValues[m_selectedID];
-                    ImGui::Text("Value: %.4f", val);
-                }
-            }
-        } else {
-            ImGui::Text("None");
-        }
-
-        // Color Legend
-        ImGui::Separator();
-        ImGui::Text("Color Legend");
-        {
-            ImVec2 legendSize(200, 20);
-            ImVec2 pos = ImGui::GetCursorScreenPos();
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
+        if (ImGui::BeginTabBar("MainTabs")) {
             
-            // Draw gradient bar
-            int numSteps = 40;
-            float stepWidth = legendSize.x / numSteps;
-            for (int i = 0; i < numSteps; i++) {
-                float t = (float)i / (numSteps - 1);
-                float r, g, b;
+            if (ImGui::BeginTabItem("Controls")) {
+                ImGui::Text("Appearance");
+                ImGui::SliderFloat("Point Size", &m_pointScale, 0.01f, 0.1f);
+                ImGui::SliderFloat("Alpha", &m_globalAlpha, 0.0f, 1.0f);
                 
-                if (m_colorMode == 0) { // Heatmap
-                    getHeatMapColor(t, &r, &g, &b);
-                } else if (m_colorMode == 1) { // CoolWarm
-                    getCoolWarmColor(t, &r, &g, &b);
-                } else { // Grayscale
-                    r = g = b = t;
+                const char* colorConfig[] = { "Heatmap (Blue-Red)", "CoolWarm (Div)", "Viridis (Grayscale)" };
+                ImGui::Combo("Color Mode", &m_colorMode, colorConfig, IM_ARRAYSIZE(colorConfig));
+                
+                ImGui::Separator();
+                ImGui::Text("Time Series");
+                ImGui::SliderFloat("Time Morph", &m_morphTime, 0.0f, 1.0f);
+
+                // Dimension Labels
+                ImGui::Separator();
+                ImGui::Text("Dimensions");
+                ImGui::BulletText("Color: %s", m_colorLabel.c_str());
+                
+                // Axis labels with colors matching gizmo
+                ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "  X:"); ImGui::SameLine();
+                ImGui::Text("%s", m_xLabel.c_str());
+                
+                ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "  Y:"); ImGui::SameLine();
+                ImGui::Text("%s", m_yLabel.c_str());
+                
+                ImGui::TextColored(ImVec4(0.3f, 0.3f, 1.0f, 1.0f), "  Z:"); ImGui::SameLine();
+                ImGui::Text("%s", m_zLabel.c_str());
+
+                ImGui::Separator();
+                ImGui::Text("Selection");
+                if (m_selectedID != -1) {
+                    ImGui::Text("Selected ID: %d", m_selectedID);
+                    // Show ticker label if available
+                    std::string ticker = getSelectedTicker();
+                    if (!ticker.empty()) {
+                        ImGui::Text("Ticker: %s", ticker.c_str());
+                    }
+                    // Show current value
+                    {
+                        std::lock_guard<std::mutex> lock(m_dataMutex);
+                        if (m_selectedID < (int)m_stagedValues.size()) {
+                            float val = m_stagedValues[m_selectedID];
+                            ImGui::Text("Value: %.4f", val);
+                        }
+                    }
+                } else {
+                    ImGui::Text("None");
+                }
+
+                // Color Legend
+                ImGui::Separator();
+                ImGui::Text("Color Legend");
+                {
+                    ImVec2 legendSize(200, 20);
+                    ImVec2 pos = ImGui::GetCursorScreenPos();
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    
+                    // Draw gradient bar
+                    int numSteps = 40;
+                    float stepWidth = legendSize.x / numSteps;
+                    for (int i = 0; i < numSteps; i++) {
+                        float t = (float)i / (numSteps - 1);
+                        float r, g, b;
+                        
+                        if (m_colorMode == 0) { // Heatmap
+                            getHeatMapColor(t, &r, &g, &b);
+                        } else if (m_colorMode == 1) { // CoolWarm
+                            getCoolWarmColor(t, &r, &g, &b);
+                        } else { // Grayscale
+                            r = g = b = t;
+                        }
+                        
+                        ImU32 col = IM_COL32((int)(r*255), (int)(g*255), (int)(b*255), 255);
+                        drawList->AddRectFilled(
+                            ImVec2(pos.x + i * stepWidth, pos.y),
+                            ImVec2(pos.x + (i + 1) * stepWidth, pos.y + legendSize.y),
+                            col
+                        );
+                    }
+                    
+                    // Draw color filter slider indicator (thin white bar)
+                    if (m_colorFilterEnabled) {
+                        float sliderX = pos.x + m_colorFilterValue * legendSize.x;
+                        drawList->AddLine(
+                            ImVec2(sliderX, pos.y - 5),
+                            ImVec2(sliderX, pos.y + legendSize.y + 5),
+                            IM_COL32(255, 255, 255, 255),
+                            3.0f
+                        );
+                    }
+                    
+                    // Move cursor past the legend
+                    ImGui::Dummy(legendSize);
+                    ImGui::Text("0.0                     1.0");
+                    
+                    // Color filter slider
+                    ImGui::Checkbox("Color Filter", &m_colorFilterEnabled);
+                    if (m_colorFilterEnabled) {
+                        ImGui::SliderFloat("Filter Value", &m_colorFilterValue, 0.0f, 1.0f);
+                        ImGui::SliderFloat("Tolerance", &m_colorFilterTolerance, 0.01f, 0.2f, "±%.2f");
+                    }
                 }
                 
-                ImU32 col = IM_COL32((int)(r*255), (int)(g*255), (int)(b*255), 255);
-                drawList->AddRectFilled(
-                    ImVec2(pos.x + i * stepWidth, pos.y),
-                    ImVec2(pos.x + (i + 1) * stepWidth, pos.y + legendSize.y),
-                    col
-                );
+                ImGui::EndTabItem();
             }
             
-            // Draw color filter slider indicator (thin white bar)
-            if (m_colorFilterEnabled) {
-                float sliderX = pos.x + m_colorFilterValue * legendSize.x;
-                drawList->AddLine(
-                    ImVec2(sliderX, pos.y - 5),
-                    ImVec2(sliderX, pos.y + legendSize.y + 5),
-                    IM_COL32(255, 255, 255, 255),
-                    3.0f
-                );
+            if (ImGui::BeginTabItem("About")) {
+                ImGui::Text("QsPlot");
+                ImGui::Separator();
+                ImGui::Text("Version: 0.1.0");
+                ImGui::Text("3D Data Visualization Tool");
+                ImGui::Separator();
+                ImGui::Text("Features:");
+                ImGui::BulletText("PCA-based dimensionality reduction");
+                ImGui::BulletText("Interactive point selection");
+                ImGui::BulletText("Time-series animation");
+                ImGui::BulletText("Color-based filtering");
+                ImGui::BulletText("Hover tooltips");
+                ImGui::Separator();
+                ImGui::Text("Author: Milemir");
+                ImGui::Text("GitHub: github.com/Milemir/QsPlot");
+                
+                ImGui::EndTabItem();
             }
             
-            // Move cursor past the legend
-            ImGui::Dummy(legendSize);
-            ImGui::Text("0.0                     1.0");
-            
-            // Color filter slider
-            ImGui::Checkbox("Color Filter", &m_colorFilterEnabled);
-            if (m_colorFilterEnabled) {
-                ImGui::SliderFloat("Filter Value", &m_colorFilterValue, 0.0f, 1.0f);
-                ImGui::SliderFloat("Tolerance", &m_colorFilterTolerance, 0.01f, 0.2f, "±%.2f");
-            }
+            ImGui::EndTabBar();
         }
-
+        
     }
     ImGui::End();
 
+    // ========================================
+    // Hover Detection & Tooltip
+    // ========================================
+    // Only detect hover if mouse is NOT over any UI window
+    if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+        ImGuiIO& io = ImGui::GetIO();
+        double mouseX = io.MousePos.x;
+        double mouseY = io.MousePos.y;
+        
+        // Get framebuffer size
+        int fbWidth, fbHeight;
+        glfwGetFramebufferSize(m_window, &fbWidth, &fbHeight);
+        
+        // Convert to framebuffer coordinates
+        int pixelX = (int)mouseX;
+        int pixelY = fbHeight - (int)mouseY;  // Flip Y (ImGui is top-left, OpenGL is bottom-left)
+        
+        // Read from picking FBO
+        if (pixelX >= 0 && pixelX < fbWidth && pixelY >= 0 && pixelY < fbHeight) {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, m_pickingFBO);
+            GLint pointID = -1;
+            glReadPixels(pixelX, pixelY, 1, 1, GL_RED_INTEGER, GL_INT, &pointID);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+            
+            m_hoveredID = pointID;
+        } else {
+            m_hoveredID = -1;
+        }
+        
+        // Show tooltip if hovering over a point
+        if (m_hoveredID != -1) {
+            ImGui::BeginTooltip();
+            ImGui::Text("ID: %d", m_hoveredID);
+            
+            // Show ticker if available (use hoveredID, not selectedID!)
+            {
+                std::lock_guard<std::mutex> lock(m_dataMutex);
+                if (m_hoveredID >= 0 && m_hoveredID < (int)m_tickers.size()) {
+                    std::string ticker = m_tickers[m_hoveredID];
+                    if (!ticker.empty()) {
+                        ImGui::Text("Ticker: %s", ticker.c_str());
+                    }
+                }
+            }
+            
+            // Show value
+            {
+                std::lock_guard<std::mutex> lock(m_dataMutex);
+                if (m_hoveredID >= 0 && m_hoveredID < (int)m_stagedValues.size()) {
+                    float v1 = m_stagedValues[m_hoveredID];
+                    float v2 = (m_hoveredID < (int)m_stagedNextValues.size()) ? m_stagedNextValues[m_hoveredID] : v1;
+                    float val = v1 + (v2 - v1) * m_morphTime;
+                    ImGui::Text("Value: %.4f", val);
+                }
+            }
+            
+            ImGui::EndTooltip();
+        }
+    } else {
+        m_hoveredID = -1;  // Clear hover when over UI
+    }
+
     ImGui::Render();
+
+    // Reset OpenGL State before rendering scene (ImGui modifies state)
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE); // Enable depth writes
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glClearColor(m_config.backgroundColor[0], m_config.backgroundColor[1], m_config.backgroundColor[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -415,8 +518,6 @@ void Renderer::renderFrame() {
     // Render UI on top
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
-
-
 
 void Renderer::initGL() {
     glEnable(GL_DEPTH_TEST);

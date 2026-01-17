@@ -127,8 +127,9 @@ private:
     float m_colorFilterValue;
     float m_colorFilterTolerance; 
 
-    // Picking State
-    int m_selectedID; // -1 if nothing selected
+    // Selection & Hover
+    int m_selectedID;
+    int m_hoveredID;
     unsigned int m_pickingFBO;
     unsigned int m_pickingTexture; // R32I
     unsigned int m_pickingDepth;
