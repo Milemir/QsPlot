@@ -142,7 +142,8 @@ class Visualizer:
         axis_labels = self._generate_axis_labels(
             method, 
             reduction_result.get('explained_variance_ratios'),
-            reduction_result.get('top_features_per_axis')
+            reduction_result.get('top_features_per_axis'),
+            reduction_result.get('top_loadings_per_axis')
         )
         
         tickers = snapshot[self._ticker_col].values
@@ -158,7 +159,8 @@ class Visualizer:
         }
     
     def _generate_axis_labels(self, method: str, explained_var: Optional[List[float]], 
-                               top_features: Optional[List[List[str]]]) -> List[str]:
+                               top_features: Optional[List[List[str]]],
+                               top_loadings: Optional[List[List[float]]] = None) -> List[str]:
         """Generate human-readable axis labels."""
         labels = []
         axis_names = ['X', 'Y', 'Z']
@@ -166,10 +168,23 @@ class Visualizer:
         for i in range(3):
             if method == 'pca' and explained_var is not None and top_features is not None:
                 var_pct = int(explained_var[i] * 100)
-                feat_str = ", ".join(top_features[i][:2])  # Top 2 features
-                # Shorten feature names if too long
-                if len(feat_str) > 20:
-                    feat_str = feat_str[:17] + "..."
+                
+                # Format: Feature(loading), Feature(loading), ...
+                if top_loadings is not None and len(top_loadings) > i:
+                    feature_parts = []
+                    for j in range(min(3, len(top_features[i]))):
+                        fname = top_features[i][j]
+                        loading = top_loadings[i][j]
+                        feature_parts.append(f"{fname}({loading:.2f})")
+                    feat_str = ", ".join(feature_parts)
+                else:
+                    # Fallback to old format if loadings not available
+                    feat_str = ", ".join(top_features[i][:3])
+                
+                # Shorten if too long
+                if len(feat_str) > 50:
+                    feat_str = feat_str[:47] + "..."
+                    
                 labels.append(f"PC{i+1} ({var_pct}%) -> {feat_str}")
             elif method == 'tsne':
                 labels.append(f"t-SNE {i+1}")

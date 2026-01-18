@@ -24,14 +24,14 @@ cd QsPlot
 pip install .
 ```
 
-### 2. Run an Analysis
+### 2.1 Using `animate()` for Time Series Data
 
 ```python
 from qsplot import Visualizer
 import pandas as pd
 
 # Load your data
-df = pd.read_csv("finance_data.csv") 
+df = pd.read_csv("data.csv") 
 
 # Initialize
 vis = Visualizer()
@@ -44,6 +44,30 @@ vis.animate("2024-01-01", "2024-12-31")
 
 # OR: Static visualization (single snapshot)
 vis.static()
+```
+
+### 2.2 Using `static()` for Non-Time Series Data
+
+For datasets without temporal progression or when you want to view a single snapshot:
+
+```python
+from qsplot import Visualizer
+import pandas as pd
+
+# Load your data
+df = pd.read_csv("data.csv")
+
+# Initialize
+vis = Visualizer()
+
+# Ingest
+vis.load_time_series(df, date_col='Date', ticker_col='Ticker', feature_cols=['Feature_1', 'Feature_2', ...])
+
+# Display static 3D visualization
+vis.static()  # Uses first available date
+
+# Or specify a particular date
+vis.static("2024-06-15")
 ```
 
 ## Setup Dependencies (Manual)

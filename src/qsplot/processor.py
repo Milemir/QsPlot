@@ -101,19 +101,23 @@ class DataProcessor:
             # Get explained variance ratios
             explained_var = reducer.explained_variance_ratio_.tolist()
             
-            # Get top 2 features per component based on absolute loadings
+            # Get top 3 features per component with their loadings
             top_features = []
+            top_loadings = []
             components = reducer.components_  # (n_components, n_features)
             for i in range(n_components):
                 loadings = np.abs(components[i])
-                top_indices = np.argsort(loadings)[::-1][:2]  # Top 2
+                top_indices = np.argsort(loadings)[::-1][:3]  # Top 3
                 top_names = [feature_names[idx] for idx in top_indices]
+                top_vals = [loadings[idx] for idx in top_indices]
                 top_features.append(top_names)
+                top_loadings.append(top_vals)
             
             return {
                 'positions': positions,
                 'explained_variance_ratios': explained_var,
-                'top_features_per_axis': top_features
+                'top_features_per_axis': top_features,
+                'top_loadings_per_axis': top_loadings
             }
             
         elif method == 'tsne':
