@@ -4,6 +4,10 @@
 
 QsPlot combines a C++20/OpenGL backend with a Python/Pandas frontend to analyze and visualize large-dimensional time-series data.
 
+
+https://github.com/user-attachments/assets/d0d1113b-2c42-4f0a-b80d-c585f8726800
+
+
 ## Documentation
 
 - **[User Guide](infra/docs/user_guide.md)**: Installation, tutorials, and concepts.
