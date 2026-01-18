@@ -45,9 +45,6 @@ vis.load_time_series(df, date_col="Date", ticker_col="Ticker", feature_cols=["F1
 
 # Animate (time series)
 vis.animate("2024-01-01", "2024-12-31")
-
-# OR: Static visualization (single snapshot)
-vis.static()
 ```
 
 ### 2.2 Using `static()` for Non-Time Series Data
