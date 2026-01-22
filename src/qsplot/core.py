@@ -68,8 +68,9 @@ class Visualizer:
             date_col = '_qsplot_date_'
             self.df[date_col] = pd.Timestamp('2024-01-01')
         else:
-            # Convert existing date column
-            self.df[date_col] = pd.to_datetime(self.df[date_col])
+            # Convert existing date column only if not already datetime
+            if not pd.api.types.is_datetime64_any_dtype(self.df[date_col]):
+                self.df[date_col] = pd.to_datetime(self.df[date_col])
         
         # Sort by date
         self.df = self.df.sort_values(by=date_col)
@@ -104,7 +105,7 @@ class Visualizer:
             DeprecationWarning,
             stacklevel=2
         )
-        return self.load_data(df, date_col, ticker_col, feature_cols, freq, missing_strategy)
+        return self.load_data(df, ticker_col, feature_cols, date_col, freq, missing_strategy)
 
     def get_dates(self) -> np.ndarray:
         if self.df is None: return np.array([])

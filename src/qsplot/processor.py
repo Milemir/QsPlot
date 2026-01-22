@@ -40,7 +40,7 @@ class DataProcessor:
         elif strategy == 'drop':
             return df.dropna()
         elif strategy == 'ffill':
-            return df.fillna(method='ffill').fillna(0) # ffill then 0 for leading NaNs
+            return df.ffill().fillna(0) # ffill then 0 for leading NaNs
         else:
             raise ValueError(f"Unknown cleaning strategy: {strategy}")
 
