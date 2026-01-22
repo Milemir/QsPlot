@@ -41,7 +41,7 @@ df = pd.read_csv("data.csv")
 vis = Visualizer()
 
 # Ingest
-vis.load_data(df, date_col="Date", ticker_col="Ticker", feature_cols=["F1", "F2", "F3"])
+vis.load_time_series(df, date_col="Date", ticker_col="Ticker", feature_cols=['Feature_1', 'Feature_2', ...])
 
 # Animate (time series)
 vis.animate("2024-01-01", "2024-12-31")
