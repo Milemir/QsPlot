@@ -41,37 +41,47 @@ df = pd.read_csv("data.csv")
 vis = Visualizer()
 
 # Ingest
-vis.load_time_series(df, date_col="Date", ticker_col="Ticker", feature_cols=["F1", "F2", "F3"])
+vis.load_data(df, date_col="Date", ticker_col="Ticker", feature_cols=["F1", "F2", "F3"])
 
 # Animate (time series)
 vis.animate("2024-01-01", "2024-12-31")
-
-# OR: Static visualization (single snapshot)
-vis.static()
 ```
 
-### 2.2 Using `static()` for Non-Time Series Data
+### 2.2 Using `static()` for Single Snapshots
 
-For datasets without temporal progression or when you want to view a single snapshot:
+The `static()` method has two main use cases:
+
+**A) View a specific timestamp from time series data:**
 
 ```python
 from qsplot import Visualizer
 import pandas as pd
 
-# Load your data
+# Load time series data
 df = pd.read_csv("data.csv")
 
-# Initialize
 vis = Visualizer()
+vis.load_data(df, date_col='Date', ticker_col='Ticker', 
+              feature_cols=['Feature_1', 'Feature_2', 'Feature_3'])
 
-# Ingest
-vis.load_time_series(df, date_col='Date', ticker_col='Ticker', feature_cols=['Feature_1', 'Feature_2', ...])
-
-# Display static 3D visualization
-vis.static()  # Uses first available date
-
-# Or specify a particular date
+# View a specific date without animation
 vis.static("2024-06-15")
+```
+
+**B) Visualize Static Data:**
+```python
+from qsplot import Visualizer
+import pandas as pd
+
+# Load static data
+df = pd.read_csv("data.csv")
+
+vis = Visualizer()
+vis.load_data(df, ticker_col='Ticker',
+              feature_cols=['Feature_1', 'Feature_2', 'Feature_3'])
+
+# Display static visualization (auto-uses the single date)
+vis.static()
 ```
 
 ## Setup Dependencies (Manual)

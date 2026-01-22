@@ -65,7 +65,7 @@ vis = Visualizer()
 
 ### Step 3: Load
 ```python
-vis.load_time_series(
+vis.load_data(
     df=my_df,
     date_col="Date",
     ticker_col="Ticker",
@@ -91,19 +91,39 @@ If you have data without meaningful temporal progression, or you just want to vi
 from qsplot import Visualizer
 import pandas as pd
 
-# Your data (can be any date, doesn't matter for static view)
-df = pd.DataFrame({
-    'Date': ['2024-01-01'] * 100,  # All same date
-    'Ticker': [f'Stock_{i}' for i in range(100)],
-    'Feature_1': np.random.randn(100),
-    'Feature_2': np.random.randn(100),
-    'Feature_3': np.random.randn(100),
-})
+# Load static data
+df = pd.read_csv("data.csv")
 
 vis = Visualizer()
-vis.load_time_series(df, date_col='Date', ticker_col='Ticker', 
-                      feature_cols=['Feature_1', 'Feature_2', 'Feature_3'])
+vis.load_data(df, ticker_col='Ticker',
+              feature_cols=['Feature_1', 'Feature_2', 'Feature_3'])
 
-# Display static visualization
+# Display static visualization (auto-uses the single date)
 vis.static()
 ```
+
+## Understanding PCA Axis Labels
+
+When using PCA for dimensionality reduction, QsPlot displays enriched axis labels showing:
+- **Variance explained** by each component (e.g., 44%)
+- **Top 3 features** contributing to that component
+- **Loading values** indicating each feature's contribution strength
+
+**Example Label:**
+```
+PC1 (44%) -> Feature_C(0.99), Feature_B(0.14), Feature_D(0.06)
+```
+
+**Interpretation:**
+- **PC1** captures **44%** of the dataset's variance
+- **Feature_C** dominates with a loading of **0.99** (very strong)
+- **Feature_B** and **Feature_D** have minor contributions
+
+**Why Loading Values Matter:**
+Even if the same features appear on multiple axes, their loading values reveal **which axis they dominate**. For example:
+```
+PC2 (32%) -> Feature_E(0.99), Feature_B(0.16), Feature_D(0.04)
+PC3 (20%) -> Feature_B(0.98), Feature_E(0.15), Feature_C(0.14)
+```
+
+Here, `Feature_B` appears on both PC2 and PC3, but its loading shows it's **much more important** for PC3 (0.98 vs 0.16).

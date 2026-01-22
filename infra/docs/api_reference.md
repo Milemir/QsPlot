@@ -7,14 +7,17 @@ The high-level controller for the visualization engine.
 ### `__init__(self)`
 Initializes the C++ Renderer and starts the GUI thread.
 
-### `load_time_series(self, df, date_col, ticker_col, feature_cols, freq='M', missing_strategy='mean')`
-Ingests a DataFrame for analysis.
+### `load_data(self, df, ticker_col, feature_cols, date_col=None, freq='M', missing_strategy='mean')`
+Ingests a DataFrame for analysis. Works for both time series and non-temporal data.
 - **df** (`pd.DataFrame`): Source data.
-- **date_col** (`str`): Name of the date column.
-- **ticker_col** (`str`): Name of the ticker/ID column.
+- **ticker_col** (`str`): Name of the identifier column (ticker, item ID, etc.).
 - **feature_cols** (`List[str]`): List of columns to use for dimensionality reduction.
+- **date_col** (`str`, optional): Name of the date column. If None, auto-creates a date column (for static data).
 - **freq** (`str`): Frequency tag (metadata only).
 - **missing_strategy** (`str`): How to clean missing data ('mean', 'zero', 'drop', 'ffill').
+
+### `load_time_series(...)` 
+**Deprecated:** Use `load_data()` instead. This method is kept for backward compatibility.
 
 ### `prepare_frame(self, date, method='pca', n_components=3) -> Dict`
 internal or advanced usage. Process a single timestamp.

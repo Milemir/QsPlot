@@ -39,21 +39,37 @@ class Visualizer:
         self._ticker_col = None
         self._feature_cols = None 
         
-    def load_time_series(self, 
-                         df: pd.DataFrame, 
-                         date_col: str, 
-                         ticker_col: str, 
-                         feature_cols: List[str], 
-                         freq: str = 'M',
-                         missing_strategy: str = 'mean'):
+    def load_data(self, 
+                  df: pd.DataFrame, 
+                  ticker_col: str,
+                  feature_cols: List[str],
+                  date_col: Optional[str] = None,
+                  freq: str = 'M',
+                  missing_strategy: str = 'mean'):
         """
         Loads and prepares the DataFrame for analysis.
+
+        Args:
+            df: Source DataFrame
+            ticker_col: Name of the identifier column (ticker, item ID, etc.)
+            feature_cols: List of feature column names for dimensionality reduction
+            date_col: Name of the date column. If None, creates a date column automatically 
+                     (useful for static/non-temporal data).
+            freq: Frequency tag (metadata only, e.g., 'M', 'D')
+            missing_strategy: How to handle missing values ('mean', 'zero', 'drop', 'ffill')
         """
         print(f"Loading {len(df)} rows...")
         self.df = df.copy()
         
-        # Convert date column
-        self.df[date_col] = pd.to_datetime(self.df[date_col])
+        # Handle date column
+        if date_col is None:
+            # Auto-create date column for static data
+            print("No date column specified. Creating default date column for static visualization...")
+            date_col = '_qsplot_date_'
+            self.df[date_col] = pd.Timestamp('2024-01-01')
+        else:
+            # Convert existing date column
+            self.df[date_col] = pd.to_datetime(self.df[date_col])
         
         # Sort by date
         self.df = self.df.sort_values(by=date_col)
@@ -68,6 +84,27 @@ class Visualizer:
         print("Cleaning data...")
         self.df[feature_cols] = self.processor.clean_data(self.df[feature_cols], strategy=missing_strategy)
         print("Data loaded and cleaned.")
+    
+    def load_time_series(self, 
+                         df: pd.DataFrame, 
+                         date_col: str, 
+                         ticker_col: str, 
+                         feature_cols: List[str], 
+                         freq: str = 'M',
+                         missing_strategy: str = 'mean'):
+        """
+        Deprecated: Use load_data() instead.
+        
+        This method is kept for backward compatibility.
+        """
+        import warnings
+        warnings.warn(
+            "load_time_series() is deprecated and will be removed in a future version. "
+            "Use load_data() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self.load_data(df, date_col, ticker_col, feature_cols, freq, missing_strategy)
 
     def get_dates(self) -> np.ndarray:
         if self.df is None: return np.array([])
