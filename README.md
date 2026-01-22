@@ -1,5 +1,4 @@
 # QsPlot
-
 **High-Performance Visualization for Time Series Datasets**
 
 QsPlot combines a C++20/OpenGL backend with a Python/Pandas frontend to analyze and visualize large-dimensional time-series data.
