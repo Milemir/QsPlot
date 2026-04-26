@@ -44,6 +44,27 @@ vis.static("2024-06-15")
 ### `stop(self)`
 Stops the engine and closes the window.
 
+### `compute_clusters(self, n_clusters=5, method='kmeans')`
+Computes global clusters across all data points and adds 'Cluster' as a feature.
+- **n_clusters** (`int`): Number of clusters to find.
+- **method** (`str`): Clustering algorithm ('kmeans').
+
+### `compute_outliers(self, contamination=0.05, method='isolation_forest')`
+Computes global outlier scores and adds 'Outlier_Score' as a feature.
+- **contamination** (`float`): Expected proportion of outliers.
+- **method** (`str`): Outlier detection algorithm ('isolation_forest').
+
+### `get_selected_points(self, date=None) -> Optional[pd.DataFrame]`
+Returns a DataFrame of the currently selected points (from UI rectangle or click selection).
+- **date** (`str`, optional): Date to look up points from.
+- **Returns**: DataFrame with ticker and all feature columns.
+
+### `export_selection(self, path: str, date=None) -> bool`
+Exports the currently selected points to a CSV file.
+- **path** (`str`): Output CSV file path.
+- **date** (`str`, optional): Date to look up points from.
+- **Returns**: `True` if export was successful.
+
 ---
 
 ## `qsplot.DataProcessor`

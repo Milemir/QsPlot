@@ -119,6 +119,52 @@ void Renderer::setDimensionLabels(const std::string& colorLabel,
     m_zLabel = zLabel;
 }
 
+// --- Phase 1: Feature Switching ---
+void Renderer::setFeatureNames(const std::vector<std::string>& names) {
+    std::lock_guard<std::mutex> lock(m_dataMutex);
+    if (m_featureNames != names) {
+        m_featureNames = names;
+        m_selectedColorFeatureIdx = 0;
+        m_colorFeatureChanged = false;
+    }
+}
+
+int Renderer::getSelectedColorFeatureIndex() const {
+    return m_selectedColorFeatureIdx;
+}
+
+bool Renderer::hasColorFeatureChanged() {
+    std::lock_guard<std::mutex> lock(m_dataMutex);
+    if (m_colorFeatureChanged) {
+        m_colorFeatureChanged = false;
+        return true;
+    }
+    return false;
+}
+
+// --- Phase 1: Stats Panel ---
+void Renderer::setStats(const std::vector<StatsData>& stats) {
+    std::lock_guard<std::mutex> lock(m_dataMutex);
+    m_statsData = stats;
+}
+
+void Renderer::setExplainedVariance(const std::vector<float>& variance) {
+    std::lock_guard<std::mutex> lock(m_dataMutex);
+    m_explainedVariance = variance;
+}
+
+// --- Phase 1: Enhanced Tooltips ---
+void Renderer::setAllFeatureValues(const float* values, size_t numPoints, size_t numFeatures) {
+    std::lock_guard<std::mutex> lock(m_dataMutex);
+    if (values && numPoints > 0 && numFeatures > 0) {
+        m_allFeatureValues.assign(values, values + numPoints * numFeatures);
+        m_numFeatures = numFeatures;
+    } else {
+        m_allFeatureValues.clear();
+        m_numFeatures = 0;
+    }
+}
+
 void Renderer::loop() {
     // 1. Init GLFW
     if (!glfwInit()) return;
@@ -266,7 +312,30 @@ void Renderer::renderFrame() {
                 // Dimension Labels
                 ImGui::Separator();
                 ImGui::Text("Dimensions");
-                ImGui::BulletText("Color: %s", m_colorLabel.c_str());
+                
+                // Color Feature Selector (Phase 1)
+                {
+                    std::lock_guard<std::mutex> lock(m_dataMutex);
+                    if (!m_featureNames.empty()) {
+                        // Build combo items string
+                        int prevIdx = m_selectedColorFeatureIdx;
+                        if (ImGui::BeginCombo("Color Feature", m_featureNames[m_selectedColorFeatureIdx].c_str())) {
+                            for (int n = 0; n < (int)m_featureNames.size(); n++) {
+                                bool isSelected = (m_selectedColorFeatureIdx == n);
+                                if (ImGui::Selectable(m_featureNames[n].c_str(), isSelected)) {
+                                    m_selectedColorFeatureIdx = n;
+                                }
+                                if (isSelected) ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        if (m_selectedColorFeatureIdx != prevIdx) {
+                            m_colorFeatureChanged = true;
+                        }
+                    } else {
+                        ImGui::BulletText("Color: %s", m_colorLabel.c_str());
+                    }
+                }
                 
                 // Axis labels with colors matching gizmo
                 ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "  X:"); ImGui::SameLine();
@@ -280,7 +349,13 @@ void Renderer::renderFrame() {
 
                 ImGui::Separator();
                 ImGui::Text("Selection");
-                if (m_selectedID != -1) {
+                if (!m_selectedIDs.empty()) {
+                    ImGui::Text("Selected: %zu points", m_selectedIDs.size());
+                    if (ImGui::Button("Clear Selection")) {
+                        m_selectedIDs.clear();
+                        m_selectedID = -1;
+                    }
+                } else if (m_selectedID != -1) {
                     ImGui::Text("Selected ID: %d", m_selectedID);
                     // Show ticker label if available
                     std::string ticker = getSelectedTicker();
@@ -296,7 +371,7 @@ void Renderer::renderFrame() {
                         }
                     }
                 } else {
-                    ImGui::Text("None");
+                    ImGui::Text("None (Shift+Drag to select area)");
                 }
 
                 // Color Legend
@@ -350,6 +425,58 @@ void Renderer::renderFrame() {
                     if (m_colorFilterEnabled) {
                         ImGui::SliderFloat("Filter Value", &m_colorFilterValue, 0.0f, 1.0f);
                         ImGui::SliderFloat("Tolerance", &m_colorFilterTolerance, 0.01f, 0.2f, "±%.2f");
+                    }
+                }
+                
+                ImGui::EndTabItem();
+            }
+            
+            if (ImGui::BeginTabItem("Statistics")) {
+                std::lock_guard<std::mutex> lock(m_dataMutex);
+                
+                // Point count
+                ImGui::Text("Points: %zu", m_renderCount);
+                
+                // PCA Explained Variance
+                if (!m_explainedVariance.empty()) {
+                    ImGui::Separator();
+                    ImGui::Text("PCA Explained Variance");
+                    float totalVar = 0;
+                    for (size_t i = 0; i < m_explainedVariance.size(); i++) {
+                        totalVar += m_explainedVariance[i];
+                        ImGui::BulletText("PC%zu: %.1f%%", i+1, m_explainedVariance[i] * 100.0f);
+                    }
+                    ImGui::Text("Total: %.1f%%", totalVar * 100.0f);
+                }
+                
+                // Feature Statistics Table
+                if (!m_statsData.empty()) {
+                    ImGui::Separator();
+                    ImGui::Text("Feature Statistics");
+                    
+                    if (ImGui::BeginTable("StatsTable", 6, 
+                        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY,
+                        ImVec2(0, 200))) {
+                        
+                        ImGui::TableSetupColumn("Feature", ImGuiTableColumnFlags_WidthFixed, 80);
+                        ImGui::TableSetupColumn("Min", ImGuiTableColumnFlags_WidthFixed, 60);
+                        ImGui::TableSetupColumn("Max", ImGuiTableColumnFlags_WidthFixed, 60);
+                        ImGui::TableSetupColumn("Mean", ImGuiTableColumnFlags_WidthFixed, 60);
+                        ImGui::TableSetupColumn("Std", ImGuiTableColumnFlags_WidthFixed, 60);
+                        ImGui::TableSetupColumn("Median", ImGuiTableColumnFlags_WidthFixed, 60);
+                        ImGui::TableHeadersRow();
+                        
+                        for (const auto& s : m_statsData) {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn(); ImGui::Text("%s", s.name.c_str());
+                            ImGui::TableNextColumn(); ImGui::Text("%.2f", s.min);
+                            ImGui::TableNextColumn(); ImGui::Text("%.2f", s.max);
+                            ImGui::TableNextColumn(); ImGui::Text("%.2f", s.mean);
+                            ImGui::TableNextColumn(); ImGui::Text("%.2f", s.std);
+                            ImGui::TableNextColumn(); ImGui::Text("%.2f", s.median);
+                        }
+                        
+                        ImGui::EndTable();
                     }
                 }
                 
@@ -415,7 +542,7 @@ void Renderer::renderFrame() {
             ImGui::BeginTooltip();
             ImGui::Text("ID: %d", m_hoveredID);
             
-            // Show ticker if available (use hoveredID, not selectedID!)
+            // Show ticker if available
             {
                 std::lock_guard<std::mutex> lock(m_dataMutex);
                 if (m_hoveredID >= 0 && m_hoveredID < (int)m_tickers.size()) {
@@ -426,10 +553,20 @@ void Renderer::renderFrame() {
                 }
             }
             
-            // Show value
+            // Show all feature values (Phase 1: Enhanced Tooltips)
             {
                 std::lock_guard<std::mutex> lock(m_dataMutex);
-                if (m_hoveredID >= 0 && m_hoveredID < (int)m_stagedValues.size()) {
+                if (m_hoveredID >= 0 && m_numFeatures > 0 && 
+                    (size_t)m_hoveredID * m_numFeatures + m_numFeatures <= m_allFeatureValues.size()) {
+                    ImGui::Separator();
+                    size_t offset = (size_t)m_hoveredID * m_numFeatures;
+                    for (size_t f = 0; f < m_numFeatures; f++) {
+                        const char* fname = (f < m_featureNames.size()) ? 
+                            m_featureNames[f].c_str() : "Feature";
+                        ImGui::Text("%s: %.4f", fname, m_allFeatureValues[offset + f]);
+                    }
+                } else if (m_hoveredID >= 0 && m_hoveredID < (int)m_stagedValues.size()) {
+                    // Fallback: show single value if no all-feature data
                     float v1 = m_stagedValues[m_hoveredID];
                     float v2 = (m_hoveredID < (int)m_stagedNextValues.size()) ? m_stagedNextValues[m_hoveredID] : v1;
                     float val = v1 + (v2 - v1) * m_morphTime;
@@ -441,6 +578,15 @@ void Renderer::renderFrame() {
         }
     } else {
         m_hoveredID = -1;  // Clear hover when over UI
+    }
+
+    // Draw rectangle selection overlay (Phase 2)
+    if (m_rectSelecting) {
+        ImDrawList* fgDraw = ImGui::GetForegroundDrawList();
+        ImVec2 p1((float)m_rectStartX, (float)m_rectStartY);
+        ImVec2 p2((float)m_rectEndX, (float)m_rectEndY);
+        fgDraw->AddRectFilled(p1, p2, IM_COL32(0, 200, 255, 40));  // Semi-transparent fill
+        fgDraw->AddRect(p1, p2, IM_COL32(0, 200, 255, 200), 0.0f, 0, 2.0f);  // Border
     }
 
     ImGui::Render();
@@ -696,29 +842,54 @@ void Renderer::mouse_button_callback(GLFWwindow* window, int button, int action,
         self->m_lastX = x;
         self->m_lastY = y;
 
+        // Shift+Click starts rectangle selection
+        if (mods & GLFW_MOD_SHIFT) {
+            self->m_rectSelecting = true;
+            self->m_rectStartX = x;
+            self->m_rectStartY = y;
+            self->m_rectEndX = x;
+            self->m_rectEndY = y;
+        }
+
     } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         self->m_mouseLeftDown = false;
         
         double x, y;
         glfwGetCursorPos(window, &x, &y);
         
-        // Calculate distance from click start
-        double dx = x - self->m_clickStartX;
-        double dy = y - self->m_clickStartY;
-        double distance = std::sqrt(dx*dx + dy*dy);
-        
-        // Only select if mouse didn't move much (click, not drag)
-        const double CLICK_THRESHOLD = 5.0; // pixels
-        if (distance < CLICK_THRESHOLD) {
-            // This is a click, do picking
-            int picked = self->getPickedID(x, y);
+        if (self->m_rectSelecting) {
+            // Finish rectangle selection
+            self->m_rectEndX = x;
+            self->m_rectEndY = y;
+            self->m_rectSelecting = false;
             
-            if (picked != -1) {
-                self->m_selectedID = picked;
+            // Only do rect selection if rectangle is large enough
+            double rdx = std::abs(x - self->m_rectStartX);
+            double rdy = std::abs(y - self->m_rectStartY);
+            if (rdx > 5 && rdy > 5) {
+                auto ids = self->getPickedIDsInRect(
+                    self->m_rectStartX, self->m_rectStartY, x, y);
+                self->m_selectedIDs = ids;
+                self->m_selectedID = ids.empty() ? -1 : ids[0];
             }
-            // If clicked on empty space (picked == -1), preserve current selection
+        } else {
+            // Calculate distance from click start
+            double dx = x - self->m_clickStartX;
+            double dy = y - self->m_clickStartY;
+            double distance = std::sqrt(dx*dx + dy*dy);
+            
+            // Only select if mouse didn't move much (click, not drag)
+            const double CLICK_THRESHOLD = 5.0; // pixels
+            if (distance < CLICK_THRESHOLD) {
+                // This is a click, do picking
+                int picked = self->getPickedID(x, y);
+                
+                if (picked != -1) {
+                    self->m_selectedID = picked;
+                    self->m_selectedIDs.clear();  // Single select clears multi-select
+                }
+            }
         }
-        // If distance >= threshold, it was a drag - don't change selection
         
     } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         self->m_mouseRightDown = (action == GLFW_PRESS);
@@ -743,8 +914,14 @@ void Renderer::cursor_position_callback(GLFWwindow* window, double xpos, double 
 
     // Interaction Logic
     if (self->m_mouseLeftDown) {
-        float sens = 0.005f;
-        self->m_camera->orbit((float)deltaX * sens, (float)deltaY * sens);
+        if (self->m_rectSelecting) {
+            // Update rectangle end position
+            self->m_rectEndX = xpos;
+            self->m_rectEndY = ypos;
+        } else {
+            float sens = 0.005f;
+            self->m_camera->orbit((float)deltaX * sens, (float)deltaY * sens);
+        }
     }
     
     if (self->m_mouseRightDown) {

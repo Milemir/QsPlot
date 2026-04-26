@@ -39,14 +39,41 @@ df = pd.read_csv("data.csv")
 # Initialize
 vis = Visualizer()
 
-# Ingest
-vis.load_time_series(df, date_col="Date", ticker_col="Ticker", feature_cols=['Feature_1', 'Feature_2', ...])
+# Ingest data (use date_col for time series)
+vis.load_data(df, date_col="Date", ticker_col="Ticker", feature_cols=['Feature_1', 'Feature_2'])
 
-# Animate (time series)
+# Animate across the time series
 vis.animate("2024-01-01", "2024-12-31")
 ```
 
-### 2.2 Using `static()` for Single Snapshots
+### 2.2 Advanced: ML Integration & Selection Export
+
+QsPlot can natively run Machine Learning models (like K-Means and Isolation Forest) on your dataset, add the generated labels as visual features, and allow you to select and export data ranges visually.
+
+```python
+# 1. Load Data
+vis = Visualizer()
+vis.load_data(df, ticker_col='Ticker', feature_cols=['F1', 'F2', 'F3'], date_col='Date')
+
+# 2. Machine Learning
+# Compute clusters globally (adds 'Cluster' to features)
+vis.compute_clusters(n_clusters=5, method='kmeans')
+
+# Detect anomalies globally (adds 'Outlier_Score' to features)
+vis.compute_outliers(contamination=0.05, method='isolation_forest')
+
+# 3. Visualize & Interact
+vis.animate("2024-01-01", "2024-12-31")
+# -> In the UI: Select 'Cluster' or 'Outlier_Score' from the Color Feature dropdown.
+# -> In the UI: Hold SHIFT + Left Click & Drag to draw a rectangle selection.
+
+# 4. Export the data you selected visually in the UI
+df_selected = vis.get_selected_points("2024-06-15")
+vis.export_selection("my_anomalies.csv", date="2024-06-15")
+```
+
+
+### 2.3 Using `static()` for Single Snapshots
 
 The `static()` method has two main use cases:
 

@@ -54,6 +54,31 @@ public:
                             const std::string& yLabel, 
                             const std::string& zLabel);
 
+    // --- Phase 1: Feature Switching ---
+    void setFeatureNames(const std::vector<std::string>& names);
+    int getSelectedColorFeatureIndex() const;
+    bool hasColorFeatureChanged();  // Returns true once when changed, then resets
+
+    // --- Phase 1: Stats Panel ---
+    struct StatsData {
+        std::string name;
+        float min, max, mean, std, median;
+        int count;
+    };
+    void setStats(const std::vector<StatsData>& stats);
+    void setExplainedVariance(const std::vector<float>& variance);
+
+    // --- Phase 1: Enhanced Tooltips ---
+    // All feature values for all points (N x F flattened, row-major)
+    void setAllFeatureValues(const float* values, size_t numPoints, size_t numFeatures);
+
+    // --- Phase 2: Rectangle Brush Selection ---
+    std::vector<int> getSelectedIDs() const;
+    void clearSelection();
+
+    // Check if the engine is running
+    bool isRunning() const { return m_running; }
+
 private:
     void loop(); 
     void initGL();
@@ -95,6 +120,19 @@ private:
     std::string m_yLabel = "PCA 2";
     std::string m_zLabel = "PCA 3";
 
+    // --- Phase 1: Feature Switching ---
+    std::vector<std::string> m_featureNames;
+    int m_selectedColorFeatureIdx = 0;
+    bool m_colorFeatureChanged = false;
+
+    // --- Phase 1: Stats Panel ---
+    std::vector<StatsData> m_statsData;
+    std::vector<float> m_explainedVariance;
+
+    // --- Phase 1: Enhanced Tooltips ---
+    std::vector<float> m_allFeatureValues;  // N x F flattened
+    size_t m_numFeatures = 0;
+
     // OpenGL Objects
     unsigned int m_validVAO, m_validVBO; 
     unsigned int m_instanceVBO_Pos;     // Current Pos (Loc 1)
@@ -135,8 +173,15 @@ private:
     unsigned int m_pickingDepth;
     unsigned int m_pickingShaderProgram;
 
+    // Phase 2: Multi-selection
+    std::vector<int> m_selectedIDs;
+    bool m_rectSelecting = false;
+    double m_rectStartX = 0, m_rectStartY = 0;
+    double m_rectEndX = 0, m_rectEndY = 0;
+
     void initPickingFBO(int width, int height);
     int getPickedID(double mouseX, double mouseY);
+    std::vector<int> getPickedIDsInRect(double x1, double y1, double x2, double y2);
 
     // Screenshot
     std::string m_screenshotPath;

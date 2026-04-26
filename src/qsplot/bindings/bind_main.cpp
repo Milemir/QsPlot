@@ -74,7 +74,51 @@ NB_MODULE(qsplot_engine, m) {
         .def("get_selected_ticker", &Renderer::getSelectedTicker, "Get the ticker of the currently selected point")
         .def("save_screenshot", &Renderer::saveScreenshot, "Save a screenshot to the specified path (PPM format)")
         .def("set_dimension_labels", &Renderer::setDimensionLabels, 
-             "Set labels for dimensions (color, x, y, z) to display in UI");
+             "Set labels for dimensions (color, x, y, z) to display in UI")
+        
+        // --- Phase 1: Feature Switching ---
+        .def("set_feature_names", &Renderer::setFeatureNames, "Set feature names for color selector dropdown")
+        .def("get_selected_color_feature_index", &Renderer::getSelectedColorFeatureIndex, 
+             "Get the currently selected color feature index from UI")
+        .def("has_color_feature_changed", &Renderer::hasColorFeatureChanged,
+             "Returns true once when user changes color feature in UI, then resets")
+        
+        // --- Phase 1: Stats Panel ---
+        .def("set_stats", [](Renderer& self, nb::list stats_list) {
+            std::vector<Renderer::StatsData> stats;
+            for (size_t i = 0; i < nb::len(stats_list); i++) {
+                nb::dict d = nb::cast<nb::dict>(stats_list[i]);
+                Renderer::StatsData sd;
+                sd.name = nb::cast<std::string>(d["name"]);
+                sd.min = nb::cast<float>(d["min"]);
+                sd.max = nb::cast<float>(d["max"]);
+                sd.mean = nb::cast<float>(d["mean"]);
+                sd.std = nb::cast<float>(d["std"]);
+                sd.median = nb::cast<float>(d["median"]);
+                sd.count = nb::cast<int>(d["count"]);
+                stats.push_back(sd);
+            }
+            self.setStats(stats);
+        }, "Set per-feature statistics for the Statistics tab (list of dicts)")
+        .def("set_explained_variance", [](Renderer& self,
+                                           nb::ndarray<float, nb::ndim<1>, nb::c_contig> variance) {
+            std::vector<float> v(variance.data(), variance.data() + variance.shape(0));
+            self.setExplainedVariance(v);
+        }, "Set PCA explained variance ratios for the Statistics tab")
+        
+        // --- Phase 1: Enhanced Tooltips ---
+        .def("set_all_feature_values", [](Renderer& self,
+                                           nb::ndarray<float, nb::ndim<2>, nb::c_contig> values) {
+            self.setAllFeatureValues(values.data(), values.shape(0), values.shape(1));
+        }, "Set all feature values (N x F matrix) for enhanced tooltips")
+        
+        // --- Phase 2: Rectangle Brush Selection ---
+        .def("get_selected_ids", &Renderer::getSelectedIDs,
+             "Get list of selected point IDs (from rectangle or single click selection)")
+        .def("clear_selection", &Renderer::clearSelection,
+             "Clear all selection state")
+             
+        .def("is_running", &Renderer::isRunning, "Check if the rendering thread is currently active");
 
     // ---------------------------
     // DataProcessor Binding
