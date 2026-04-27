@@ -89,3 +89,6 @@ Thumbs.db
 examples/
 # Personal/Project Planning
 ROADMAP.md
+
+# Test output redirects (binary/UTF-16 files break pytest collection)
+tests/test_output*.txt

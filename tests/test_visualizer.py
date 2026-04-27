@@ -41,14 +41,14 @@ class TestVisualizerDataLoading:
         assert vis.processor is not None
 
     @patch('qsplot.core.qsplot_engine')
-    def test_load_time_series(self, mock_engine, sample_df):
-        """Test load_time_series processes DataFrame correctly."""
+    def test_load_data(self, mock_engine, sample_df):
+        """Test load_data processes DataFrame correctly."""
         mock_engine.Renderer = Mock
         
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -68,7 +68,7 @@ class TestVisualizerDataLoading:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -117,7 +117,7 @@ class TestVisualizerPrepareFrame:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -136,7 +136,7 @@ class TestVisualizerPrepareFrame:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -156,7 +156,7 @@ class TestVisualizerPrepareFrame:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -174,7 +174,7 @@ class TestVisualizerPrepareFrame:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -191,7 +191,7 @@ class TestVisualizerPrepareFrame:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=sample_df,
             date_col="Date",
             ticker_col="Ticker",
@@ -229,7 +229,7 @@ class TestVisualizerTickerAlignment:
         from qsplot.core import Visualizer
         
         vis = Visualizer()
-        vis.load_time_series(
+        vis.load_data(
             df=df_with_changing_tickers,
             date_col="Date",
             ticker_col="Ticker",
