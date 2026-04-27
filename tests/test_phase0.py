@@ -81,7 +81,7 @@ def test_visualizer_global_mode():
     
     # Create test time-series data
     np.random.seed(42)
-    dates = pd.date_range('2024-01-01', periods=3, freq='M')
+    dates = pd.date_range('2024-01-01', periods=3, freq='ME')
     tickers = ['A', 'B', 'C', 'D', 'E']
     
     rows = []
