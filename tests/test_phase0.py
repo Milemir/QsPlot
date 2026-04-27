@@ -2,8 +2,7 @@
 Phase 0: Temporal Continuity Tests
 Tests for global PCA, global normalization, and global color bounds.
 """
-import sys
-sys.path.insert(0, 'src')
+
 
 import numpy as np
 import pandas as pd
