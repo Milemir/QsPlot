@@ -6,6 +6,7 @@ Tests for global PCA, global normalization, and global color bounds.
 
 import numpy as np
 import pandas as pd
+from unittest.mock import patch
 
 def test_processor_global_pca():
     """Test DataProcessor.fit_global_pca and transform with fitted_pca."""
@@ -75,6 +76,7 @@ def test_processor_global_normalization():
     assert abs(np.max(np.abs(norm2_local)) - 10.0) < 0.01
     print("  [PASS] Per-frame normalization backward compatible")
 
+@patch('qsplot.core.qsplot_engine', None)
 def test_visualizer_global_mode():
     """Test Visualizer with global normalization mode."""
     from qsplot.core import Visualizer

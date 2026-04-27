@@ -461,7 +461,7 @@ class Visualizer:
         dates = self.get_dates()
         
         if len(dates) == 0:
-            print("No data loaded. Use load_time_series() first.")
+            print("No data loaded. Use load_data() first.")
             return
         
         # Select date
