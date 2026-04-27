@@ -65,10 +65,11 @@ class DataProcessor:
         if feature_names is None:
             feature_names = [f"feat_{i}" for i in range(data.shape[1])]
         
-        pca = PCA(n_components=n_components)
+        actual_n = min(n_components, data.shape[0], data.shape[1])
+        pca = PCA(n_components=actual_n)
         pca.fit(data)
         
-        info = self._extract_pca_info(pca, feature_names, n_components)
+        info = self._extract_pca_info(pca, feature_names, actual_n)
         info['pca'] = pca
         return info
     
@@ -145,7 +146,8 @@ class DataProcessor:
             return {
                 'positions': positions,
                 'explained_variance_ratios': [1.0 / n_components] * n_components,
-                'top_features_per_axis': [[feature_names[i % len(feature_names)]] for i in range(n_components)]
+                'top_features_per_axis': [[feature_names[i % len(feature_names)]] for i in range(n_components)],
+                'top_loadings_per_axis': [[1.0] for _ in range(n_components)]
             }
 
         reducer: BaseEstimator
@@ -155,12 +157,25 @@ class DataProcessor:
                 # Use pre-fitted PCA: only transform, no fit
                 # This ensures axes are consistent across frames
                 positions = fitted_pca.transform(data)
-                info = self._extract_pca_info(fitted_pca, feature_names, n_components)
+                info = self._extract_pca_info(fitted_pca, feature_names, fitted_pca.n_components)
             else:
                 # Per-frame fit (original behavior)
-                reducer = PCA(n_components=n_components)
+                actual_n = min(n_components, data.shape[0], data.shape[1])
+                reducer = PCA(n_components=actual_n)
                 positions = reducer.fit_transform(data)
-                info = self._extract_pca_info(reducer, feature_names, n_components)
+                info = self._extract_pca_info(reducer, feature_names, actual_n)
+                
+            # Pad if actual components < n_components
+            if positions.shape[1] < n_components:
+                padded_positions = np.zeros((positions.shape[0], n_components))
+                padded_positions[:, :positions.shape[1]] = positions
+                positions = padded_positions
+                
+                actual_n = len(info['explained_variance_ratios'])
+                info['explained_variance_ratios'].extend([0.0] * (n_components - actual_n))
+                for i in range(actual_n, n_components):
+                    info['top_features_per_axis'].append([feature_names[i % len(feature_names)]])
+                    info['top_loadings_per_axis'].append([1.0])
             
             return {
                 'positions': positions,
